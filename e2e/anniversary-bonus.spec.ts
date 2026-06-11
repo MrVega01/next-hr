@@ -103,14 +103,14 @@ test.describe('Work Anniversary: Balance Refresh Mid-Session', () => {
     // --- Assert: ReconciliationBanner appears ---
     // The banner renders whenever useToasts() contains a toast with
     // type="warning" and a requestId — exactly what the watcher emits.
-    // It renders the heading "Balance Reconciliation Notice" from ReconciliationBanner.tsx.
+    // It renders the heading "Your available balance changed" from ReconciliationBanner.tsx.
     await expect(
-      page.getByText(/balance reconciliation notice/i),
+      page.getByText(/your available balance changed/i),
     ).toBeVisible({ timeout: 10_000 })
 
     // The banner body also contains the watcher's message string.
     await expect(
-      page.getByText(/balance was updated by the system/i),
+      page.getByText(/balance was updated while this form was open/i),
     ).toBeVisible({ timeout: 5_000 })
   })
 
@@ -137,7 +137,7 @@ test.describe('Work Anniversary: Balance Refresh Mid-Session', () => {
 
     // Force a balance refetch to trigger the watcher.
     await page.getByRole('button', { name: /refresh/i }).click()
-    await expect(page.getByText(/balance reconciliation notice/i)).toBeVisible({
+    await expect(page.getByText(/your available balance changed/i)).toBeVisible({
       timeout: 10_000,
     })
 
@@ -146,6 +146,6 @@ test.describe('Work Anniversary: Balance Refresh Mid-Session', () => {
     await dismissButton.click()
 
     // --- Assert: banner is gone ---
-    await expect(page.getByText(/balance reconciliation notice/i)).not.toBeVisible()
+    await expect(page.getByText(/your available balance changed/i)).not.toBeVisible()
   })
 })

@@ -23,7 +23,7 @@ export function ReconciliationBanner() {
     <div className="relative flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
       <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-400" />
       <div className="flex-1 space-y-1">
-        <p className="font-semibold text-amber-300">Balance Reconciliation Notice</p>
+        <p className="font-semibold text-amber-300">Your available balance changed</p>
         <p className="text-amber-200/80">{latest.message}</p>
         {reconciliationWarnings.length > 1 && (
           <p className="text-xs text-amber-400/70">

@@ -5,7 +5,7 @@ import { useReconciliation } from '@/features/time-off/hooks'
 import { BalanceList } from '@/features/time-off/components/BalanceList'
 import { RequestForm } from '@/features/time-off/components/RequestForm'
 import { RequestList } from '@/features/time-off/components/RequestList'
-import { ReconciliationBanner } from '@/features/time-off/components/ReconciliationBanner'
+
 
 interface DemoEmployee {
   id: string
@@ -20,9 +20,6 @@ const DEMO_EMPLOYEES: DemoEmployee[] = [
 ]
 
 export function EmployeeView() {
-  // Activate reconciliation watcher
-  useReconciliation()
-
   const selectedEmployeeId = useSelectedEmployeeId()
   const setSelectedEmployeeId = useUiStore((s) => s.setSelectedEmployeeId)
 
@@ -30,6 +27,9 @@ export function EmployeeView() {
   const activeId = selectedEmployeeId ?? DEMO_EMPLOYEES[0].id
   const activeEmployee =
     DEMO_EMPLOYEES.find((e) => e.id === activeId) ?? DEMO_EMPLOYEES[0]
+
+  // Activate reconciliation watcher — pass activeId so it knows which queries to refresh
+  useReconciliation(activeId)
 
   return (
     <div className="space-y-8">
@@ -62,9 +62,6 @@ export function EmployeeView() {
           </select>
         </div>
       </div>
-
-      {/* Reconciliation banner — critical for silent-failure UX */}
-      <ReconciliationBanner />
 
       {/* Balances */}
       <section className="space-y-3">

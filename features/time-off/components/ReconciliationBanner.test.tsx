@@ -16,21 +16,21 @@ beforeEach(() => {
 describe('ReconciliationBanner', () => {
   it('is not rendered when there are no warning toasts', () => {
     render(<ReconciliationBanner />)
-    expect(screen.queryByText('Balance Reconciliation Notice')).not.toBeInTheDocument()
+    expect(screen.queryByText('Your available balance changed')).not.toBeInTheDocument()
   })
 
   it('is visible when a warning toast with a requestId exists', () => {
     useUiStore.getState().addToast({
       id: 'toast-warn-001',
       type: 'warning',
-      message: 'Your balance was updated by the system. Your request may need review.',
+      message: 'Your balance was updated while this form was open. Check the available days above before submitting.',
       requestId: 'req-temp-001',
     })
 
     render(<ReconciliationBanner />)
-    expect(screen.getByText('Balance Reconciliation Notice')).toBeInTheDocument()
+    expect(screen.getByText('Your available balance changed')).toBeInTheDocument()
     expect(
-      screen.getByText(/your balance was updated by the system/i),
+      screen.getByText(/balance was updated while this form was open/i),
     ).toBeInTheDocument()
   })
 
@@ -43,7 +43,7 @@ describe('ReconciliationBanner', () => {
     })
 
     render(<ReconciliationBanner />)
-    expect(screen.queryByText('Balance Reconciliation Notice')).not.toBeInTheDocument()
+    expect(screen.queryByText('Your available balance changed')).not.toBeInTheDocument()
   })
 
   it('dismiss button removes the banner', async () => {
@@ -52,15 +52,15 @@ describe('ReconciliationBanner', () => {
     useUiStore.getState().addToast({
       id: 'toast-warn-003',
       type: 'warning',
-      message: 'Your balance was updated by the system.',
+      message: 'Your balance was updated while this form was open. Check the available days above before submitting.',
       requestId: 'req-temp-003',
     })
 
     render(<ReconciliationBanner />)
-    expect(screen.getByText('Balance Reconciliation Notice')).toBeInTheDocument()
+    expect(screen.getByText('Your available balance changed')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /dismiss/i }))
 
-    expect(screen.queryByText('Balance Reconciliation Notice')).not.toBeInTheDocument()
+    expect(screen.queryByText('Your available balance changed')).not.toBeInTheDocument()
   })
 })

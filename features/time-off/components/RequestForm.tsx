@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useBalance, useSubmitRequest } from '@/features/time-off/hooks'
+import { ReconciliationBanner } from './ReconciliationBanner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -193,6 +194,10 @@ export function RequestForm({
           className="w-full rounded-lg border border-slate-600 bg-slate-900 px-2.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 resize-none"
         />
       </div>
+
+      {/* Balance-changed warning — shown when an external update (anniversary bonus,
+          admin adjustment) landed while the form was open */}
+      <ReconciliationBanner />
 
       {/* Submit */}
       <Button

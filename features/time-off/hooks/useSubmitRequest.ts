@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { QueryCacheNotifyEvent } from '@tanstack/react-query'
 import { submitTimeOffRequest } from '@/features/time-off/api/hcmClient'
 import { QueryKeys } from '@/lib/query-client'
-import { useUiStore } from '@/features/time-off/store/uiStore'
+import { useUiStore, useToasts } from '@/features/time-off/store/uiStore'
 import type {
   Balance,
   HcmBatchBalancesResponse,
@@ -34,7 +34,7 @@ export function useSubmitRequest() {
 
       // 1 & 2. Cancel in-flight background refetches that could clobber optimistic state
       await queryClient.cancelQueries({
-        queryKey: QueryKeys.balance(employeeId, locationId),
+        queryKey: QueryKeys.balance(employeeId, locationId, balanceType),
       })
       await queryClient.cancelQueries({
         queryKey: QueryKeys.balances(employeeId),
@@ -42,7 +42,7 @@ export function useSubmitRequest() {
 
       // 3. Snapshot current cache for rollback
       const previousBalance = queryClient.getQueryData<Balance>(
-        QueryKeys.balance(employeeId, locationId),
+        QueryKeys.balance(employeeId, locationId, balanceType),
       )
       const previousBalances = queryClient.getQueryData<HcmBatchBalancesResponse>(
         QueryKeys.balances(employeeId),
@@ -57,7 +57,7 @@ export function useSubmitRequest() {
           asOf: new Date().toISOString(),
         }
         queryClient.setQueryData<Balance>(
-          QueryKeys.balance(employeeId, locationId),
+          QueryKeys.balance(employeeId, locationId, balanceType),
           optimisticBalance,
         )
       }
@@ -97,7 +97,7 @@ export function useSubmitRequest() {
       // 1. Restore cache snapshots
       if (previousBalance !== undefined) {
         queryClient.setQueryData<Balance>(
-          QueryKeys.balance(employeeId, locationId),
+          QueryKeys.balance(employeeId, locationId, variables.balanceType),
           previousBalance,
         )
       }
@@ -130,7 +130,7 @@ export function useSubmitRequest() {
         // Treat like onError: rollback
         if (previousBalance !== undefined) {
           queryClient.setQueryData<Balance>(
-            QueryKeys.balance(employeeId, locationId),
+            QueryKeys.balance(employeeId, locationId, variables.balanceType),
             previousBalance,
           )
         }
@@ -170,7 +170,7 @@ export function useSubmitRequest() {
       // registry entry once the re-read lands — do NOT unregister here, otherwise
       // the watcher fires after an empty registry and the mismatch check is skipped.
       void queryClient.invalidateQueries({
-        queryKey: QueryKeys.balance(employeeId, locationId),
+        queryKey: QueryKeys.balance(employeeId, locationId, variables.balanceType),
       })
 
       // 2. If success, delay-invalidate requests list
@@ -216,9 +216,15 @@ function detectCodeFromMessage(msg: string): HcmSubmitResult['errorCode'] | unde
 // useReconciliation — watches the query cache for balance updates that
 // contradict pending optimistic writes registered in Zustand.
 // ---------------------------------------------------------------------------
-export function useReconciliation() {
+export function useReconciliation(employeeId: string) {
   const queryClient = useQueryClient()
+  const toasts = useToasts()
+  const prevReconciliationCountRef = useRef(0)
 
+  // Effect 1: watch the query cache for balance mismatches and emit a warning toast.
+  // Only responsible for detection — does NOT call invalidateQueries here because
+  // calling it from inside a queryCache.subscribe callback is unreliable (we are
+  // inside TanStack Query's own notification cycle at that point).
   useEffect(() => {
     const queryCache = queryClient.getQueryCache()
 
@@ -231,26 +237,21 @@ export function useReconciliation() {
       const query = event.query
       const queryKey = query.queryKey as readonly unknown[]
 
-      // Only react to single-balance queries: ['balance', employeeId, locationId]
-      if (queryKey[0] !== 'balance' || queryKey.length !== 3) return
+      // Only react to single-balance queries: ['balance', employeeId, locationId, balanceType]
+      if (queryKey[0] !== 'balance' || queryKey.length !== 4) return
 
-      const employeeId = queryKey[1] as string
+      const qEmployeeId = queryKey[1] as string
       const locationId = queryKey[2] as string
+      const balanceType = queryKey[3] as string
 
       const freshBalance = queryClient.getQueryData<Balance>(queryKey as Parameters<typeof queryClient.getQueryData>[0])
       if (!freshBalance) return
 
       const registry = useUiStore.getState().optimisticRegistry
 
-      // Check every registered optimistic entry that matches this (employeeId, locationId)
       for (const [key, entry] of Object.entries(registry)) {
-        if (entry.employeeId !== employeeId || entry.locationId !== locationId) continue
+        if (entry.employeeId !== qEmployeeId || entry.locationId !== locationId || entry.balanceType !== balanceType) continue
 
-        // Detect external mutation: if the server's available days don't match what
-        // we expected after our delta, something changed the balance independently
-        // (anniversary bonus, admin adjustment, etc.).
-        // snapshotAvailableDays=-1 means we had no cached balance at mutation time;
-        // skip reconciliation in that case.
         const expectedAvailable = entry.snapshotAvailableDays + entry.deltaApplied
         const balanceMismatch =
           entry.snapshotAvailableDays >= 0 &&
@@ -261,7 +262,7 @@ export function useReconciliation() {
             id: `toast-reconcile-${key}-${Date.now()}`,
             type: 'warning',
             message:
-              'Your balance was updated by the system. Your request may need review.',
+              'Your balance was updated while this form was open. Check the available days above before submitting.',
             requestId: entry.requestId,
           })
         }
@@ -275,4 +276,16 @@ export function useReconciliation() {
       unsubscribe()
     }
   }, [queryClient])
+
+  // Effect 2: react to new reconciliation toasts by invalidating the balance and
+  // request-history queries. This runs in React's normal useEffect lifecycle —
+  // outside the query cache notification cycle — so invalidateQueries is reliable.
+  useEffect(() => {
+    const count = toasts.filter((t) => t.type === 'warning' && t.requestId).length
+    if (count > prevReconciliationCountRef.current) {
+      void queryClient.invalidateQueries({ queryKey: QueryKeys.balances(employeeId) })
+      void queryClient.invalidateQueries({ queryKey: QueryKeys.requests(employeeId) })
+    }
+    prevReconciliationCountRef.current = count
+  }, [toasts, employeeId, queryClient])
 }
