@@ -1,8 +1,10 @@
 # Technical Requirements Document: ExampleHR Time-Off Frontend
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Date:** 2026-06-11  
 **Audience:** Senior engineers who need to understand and challenge the design decisions
+
+> **Changelog (1.2):** Component code reorganized (no behavior change). Components now follow a three-tier rule — `components/ui/` (shadcn primitives, flat), `components/app/` (app shell, flat), `features/time-off/components/` (domain, **folder-per-component**). Each domain component is a self-contained folder (`Component.tsx` + `.test.tsx` + `.stories.tsx` + `index.ts` barrel). `app/_components/` removed: `AppNav` → `components/app/`, `EmployeeView` → the feature. See §8 "Code organization."
 
 > **Changelog (1.1):** Per-cell balance cache key now includes `balanceType` as a fourth segment (`['balance', employeeId, locationId, balanceType]`), isolating each leave type's cache. `useReconciliation` split into a detection effect and a React-lifecycle refresh effect. Manager approval now only clears `pendingDays` (no double-decrement); deny restores `availableDays`. Submit and approve/deny now refresh the batch-balance and request-list caches so cards and lists update without a manual refresh. Requests carry an `employeeName` enriched at read time. `ReconciliationBanner` relocated into `RequestForm`.
 
@@ -471,6 +473,30 @@ Manager View (/manager)
 **Feature components are self-contained with their own hooks.** `BalanceList` knows how to fetch its own data; `RequestForm` knows how to submit; `ApprovalPanel` knows how to approve. There is no prop-drilling of query results. This makes each component independently testable and replaceable.
 
 **`useReconciliation` is mounted at the `EmployeeView` level**, not inside `RequestForm` or `BalanceCard`. This is because reconciliation events can arrive from any background refresh, regardless of which sub-component is currently rendered. Mounting it at the feature root ensures it is active for the entire session on the employee view. The hook is invoked with `activeId` (the currently-selected employee), so it must be called after that id is resolved. Note the separation of concerns: the *detection hook* lives at the feature root for full-session coverage, but the *banner it feeds* lives inside `RequestForm` — warnings are emitted globally yet surfaced at the point of action.
+
+### Code organization (file layout)
+
+The logical tree above maps onto a physical layout governed by **one rule: primitives and app-shell are flat; domain components get a folder.** Three tiers:
+
+| Tier | Location | What lives here | Layout |
+|---|---|---|---|
+| **Primitives** | `components/ui/` | shadcn/ui primitives (Button, Dialog…) — no domain knowledge, reusable anywhere | flat (shadcn install target — `components.json` pins `ui → @/components/ui`) |
+| **App shell** | `components/app/` | layout chrome not tied to a feature (`AppNav`) | flat |
+| **Domain** | `features/time-off/components/` | components that know the feature's data — the ones that carry tests + stories | **folder-per-component** |
+
+**Folder-per-component.** Each domain component is a self-contained directory holding its trio plus a barrel:
+
+```
+features/time-off/components/BalanceCard/
+  BalanceCard.tsx
+  BalanceCard.test.tsx        # where a test exists
+  BalanceCard.stories.tsx
+  index.ts                    # export { BalanceCard } from './BalanceCard'
+```
+
+The one-line `index.ts` barrel is deliberate: external imports stay `@/features/time-off/components/BalanceCard` (unchanged — they resolve to the folder's `index.ts`), while the real component file keeps a meaningful name in editor tabs, fuzzy-find, and stack traces (versus a sea of identical `index.tsx`). It is a single leaf-level re-export, so it carries none of the circular-import or tree-shaking hazards of deep barrel trees. Cross-component sibling imports inside the feature use `../Sibling` (resolving via that sibling's barrel); shared story fixtures live at the components-dir root (`_stories-helpers.ts`).
+
+**Why feature-first, not type-first.** Everything the time-off domain needs — `components/`, `hooks/`, `store/`, `api/`, `types/` — is colocated under `features/time-off/`. A type-first layout (global `/components`, `/hooks`, `/store` grouped by kind) scatters one feature across the tree and does not scale past a couple of features. `EmployeeView` lives in the feature (not `app/`) precisely because it composes feature components and `useReconciliation` — it is a domain view, not app shell. `app/` is therefore routing-only.
 
 ---
 

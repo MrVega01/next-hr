@@ -84,9 +84,9 @@ pnpm test:coverage       # With coverage report (written to coverage/)
 | `lib/query-client.test.ts` | Unit | QueryKey factory shapes |
 | `features/time-off/hooks/useBalance.test.tsx` | Hook | Fetch lifecycle, disabled state |
 | `features/time-off/hooks/useSubmitRequest.test.tsx` | Hook | Optimistic update, rollback, authoritative re-read |
-| `features/time-off/components/BalanceCard.test.tsx` | Component | Balance rendering, pending days, fetching indicator |
-| `features/time-off/components/StatusBadge.test.tsx` | Component | All status strings |
-| `features/time-off/components/ReconciliationBanner.test.tsx` | Component | Show/hide/dismiss via Zustand |
+| `features/time-off/components/BalanceCard/BalanceCard.test.tsx` | Component | Balance rendering, pending days, fetching indicator |
+| `features/time-off/components/StatusBadge/StatusBadge.test.tsx` | Component | All status strings |
+| `features/time-off/components/ReconciliationBanner/ReconciliationBanner.test.tsx` | Component | Show/hide/dismiss via Zustand |
 
 ### End-to-end tests (Playwright)
 
@@ -97,13 +97,15 @@ pnpm test:e2e            # Headless Chromium
 pnpm test:e2e:ui         # Interactive Playwright UI
 ```
 
-**9 tests** across 3 spec files:
+**17 tests** across 5 spec files:
 
 | File | What it covers |
 |---|---|
 | `e2e/employee-submit.spec.ts` | Balance display, optimistic pending badge, insufficient balance guard |
 | `e2e/manager-approve.spec.ts` | Pending request visibility, approve flow, balance at decision time |
 | `e2e/anniversary-bonus.spec.ts` | Mid-session balance refresh, ReconciliationBanner appearance and dismiss |
+| `e2e/leave-type-switch.spec.ts` | Per-type cache isolation — switching the leave-type selector updates available days and the insufficient-balance guard |
+| `e2e/reconciliation-refresh.spec.ts` | Balance cards + history auto-refresh when a reconciliation warning appears; no spurious warning on a normal submit |
 
 ---
 
@@ -148,7 +150,6 @@ example-hr/
 │   ├── (employee)/             # Route group → /
 │   ├── manager/                # → /manager
 │   ├── api/hcm/                # Next.js route handlers (proxy to mock engine)
-│   ├── _components/            # Shared client components (AppNav, EmployeeView)
 │   ├── layout.tsx              # Root layout + Providers
 │   └── providers.tsx           # QueryClientProvider + MSW init
 │
@@ -157,7 +158,12 @@ example-hr/
 │   ├── api/                    # hcmClient.ts — typed fetch wrappers
 │   ├── hooks/                  # useBalances, useBalance, useSubmitRequest, useApproveRequest, useReconciliation
 │   ├── store/                  # uiStore.ts (Zustand)
-│   └── components/             # All UI components + stories
+│   └── components/             # Domain components — folder-per-component (see below)
+│       ├── BalanceCard/        #   BalanceCard.tsx + .test.tsx + .stories.tsx + index.ts
+│       ├── RequestForm/        #   …same trio + barrel for each component
+│       ├── EmployeeView/       #   Employee page composition (moved from app/_components)
+│       ├── …                   #   (11 components total)
+│       └── _stories-helpers.ts # Shared story fixtures (makeBalance, makeRequest)
 │
 ├── mocks/                      # Mock HCM
 │   ├── hcm-engine.ts           # Stateful in-memory HCM simulation
@@ -168,7 +174,9 @@ example-hr/
 │   ├── query-client.ts         # TanStack QueryClient + QueryKeys
 │   └── msw/                    # browser.ts / server.ts setup
 │
-├── components/ui/              # shadcn/ui components
+├── components/                 # Cross-feature components
+│   ├── ui/                     #   shadcn/ui primitives (flat — shadcn install target)
+│   └── app/                    #   App shell (AppNav) — not tied to a feature
 ├── e2e/                        # Playwright specs
 ├── docs/
 │   └── TRD.md                  # Technical Requirements Document
@@ -177,6 +185,18 @@ example-hr/
     ├── visualist.md            # UI agent (sonnet) — uses frontend-design skill
     └── guardian.md             # Security review agent (opus)
 ```
+
+### Component organization — three tiers
+
+Every component lives in one of three places, by a single rule: **primitives and app-shell are flat; domain components get a folder.**
+
+| Tier | Location | What lives here | Layout |
+|---|---|---|---|
+| **Primitives** | `components/ui/` | shadcn/ui primitives (Button, Dialog…) — reusable anywhere, no domain knowledge | flat (shadcn install target) |
+| **App shell** | `components/app/` | layout chrome not tied to a feature (AppNav) | flat |
+| **Domain** | `features/time-off/components/` | components that know the feature's data — they carry tests + stories | **folder-per-component** |
+
+Each domain component is a self-contained folder — `BalanceCard/` holds `BalanceCard.tsx`, `BalanceCard.test.tsx`, `BalanceCard.stories.tsx`, and a one-line `index.ts` barrel (`export { BalanceCard } from './BalanceCard'`). The barrel keeps imports clean and unchanged (`@/features/time-off/components/BalanceCard`) while real filenames stay visible in editor tabs, fuzzy-find, and stack traces.
 
 ---
 
