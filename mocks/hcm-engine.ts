@@ -135,9 +135,9 @@ function buildSeedRequests(): Map<string, InternalRequest> {
       days: 3,
       startDate: '2025-08-11',
       endDate: '2025-08-13',
-      status: 'submitted',
+      status: 'approved',
       createdAt: '2025-07-15T14:00:00.000Z',
-      updatedAt: '2025-07-15T14:00:00.000Z',
+      updatedAt: '2025-07-16T09:00:00.000Z',
       baseVersion: 'v1752537600000',
     },
   ]
@@ -212,6 +212,7 @@ export function getRequests(employeeId?: string): TimeOffRequest[] {
   // Strip internal silent-failure status — expose as 'submitted' to the outside
   return filtered.map((r) => ({
     ...r,
+    employeeName: getEmployee(r.employeeId)?.name ?? r.employeeId,
     status: r.status === 'silent-failure' ? 'submitted' : r.status,
   })) as TimeOffRequest[]
 }
@@ -305,10 +306,13 @@ export function approveRequest(requestId: string, expectedVersion: string): HcmS
     }
   }
 
-  if (balance.availableDays < request.days) {
+  // availableDays was already decremented on submit; the "slot" for this request
+  // is held in pendingDays. Check there instead to avoid false rejections when
+  // multiple requests are pending simultaneously.
+  if (balance.pendingDays < request.days) {
     return {
       success: false,
-      error: `Insufficient balance: requested ${request.days} days but only ${balance.availableDays} available`,
+      error: `Insufficient balance: requested ${request.days} days but only ${balance.pendingDays} reserved`,
       errorCode: 'INSUFFICIENT_BALANCE',
     }
   }
@@ -319,7 +323,8 @@ export function approveRequest(requestId: string, expectedVersion: string): HcmS
   const key = balanceKey(request.employeeId, request.locationId, request.balanceType)
   const updated: Balance = {
     ...balance,
-    availableDays: balance.availableDays - request.days,
+    // availableDays was already reduced on submit — do not decrement again.
+    // Only clear the pending reservation for this request.
     pendingDays: Math.max(0, balance.pendingDays - request.days),
     version: nowVersion(),
     asOf: now,
@@ -345,6 +350,8 @@ export function denyRequest(requestId: string): HcmSubmitResult {
     if (balance) {
       const updated: Balance = {
         ...balance,
+        // Restore the days that were reserved when the request was submitted.
+        availableDays: balance.availableDays + request.days,
         pendingDays: Math.max(0, balance.pendingDays - request.days),
         version: nowVersion(),
         asOf: now,
