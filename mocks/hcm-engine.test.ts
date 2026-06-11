@@ -135,10 +135,10 @@ describe('approveRequest', () => {
     const approveResult = approveRequest(requestId, balanceAfterSubmit!.version)
     expect(approveResult.success).toBe(true)
 
-    // Balance was further decremented on approve (submit decrements pending, approve finalises)
-    // According to engine: approve decrements availableDays by request.days again and removes pending
+    // availableDays was already decremented on submit — approve only clears pendingDays.
     const finalBalance = getBalance('emp-001', 'loc-nyc', 'vacation')
-    expect(finalBalance!.availableDays).toBe(9) // 12 - 3
+    expect(finalBalance!.availableDays).toBe(12) // unchanged from submit
+    expect(finalBalance!.pendingDays).toBe(0)    // cleared on approve
   })
 
   it('version conflict — setForceNextConflict triggers VERSION_CONFLICT on approve', () => {

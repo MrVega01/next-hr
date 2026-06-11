@@ -20,9 +20,9 @@ export function BalanceList({ employeeId }: BalanceListProps) {
   const queryClient = useQueryClient()
 
   function handleRefresh() {
-    void queryClient.invalidateQueries({
-      queryKey: QueryKeys.balances(employeeId),
-    })
+    void queryClient.invalidateQueries({ queryKey: QueryKeys.balances(employeeId) })
+    void queryClient.invalidateQueries({ queryKey: QueryKeys.balancePrefix(employeeId) })
+    void queryClient.invalidateQueries({ queryKey: QueryKeys.requests(employeeId) })
   }
 
   if (isLoading) {

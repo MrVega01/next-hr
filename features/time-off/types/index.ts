@@ -22,6 +22,7 @@ export interface Balance {
 export interface TimeOffRequest {
   id: string
   employeeId: string
+  employeeName?: string
   locationId: string
   balanceType: BalanceType
   days: number

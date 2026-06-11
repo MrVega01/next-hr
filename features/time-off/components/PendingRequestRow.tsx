@@ -36,7 +36,7 @@ export function PendingRequestRow({
         <div className="flex flex-wrap items-center gap-2">
           {showEmployeeName && (
             <span className="font-medium text-slate-200">
-              {request.employeeId}
+              {request.employeeName ?? request.employeeId}
             </span>
           )}
           <span className="font-medium text-slate-200">{typeLabel}</span>

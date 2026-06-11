@@ -1,5 +1,6 @@
 import type {
   Balance,
+  Employee,
   HcmBatchBalancesResponse,
   HcmSubmitResult,
   TimeOffRequest,

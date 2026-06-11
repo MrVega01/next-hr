@@ -73,7 +73,7 @@ test.describe('Manager: Approve/Deny Requests', () => {
     await expect(
       page
         .getByText(/verifying current balance/i)
-        .or(page.getByText(/days available/i)),
+        .or(page.getByText(/days remaining/i)),
     ).toBeVisible({ timeout: 10_000 })
 
     // Click the "Approve" button inside the dialog.
@@ -109,7 +109,7 @@ test.describe('Manager: Approve/Deny Requests', () => {
 
     // Wait for the async balance fetch to complete and a numeric value to appear.
     // The balance is rendered as a large mono number followed by "days available".
-    await expect(page.getByText(/days available/i)).toBeVisible({
+    await expect(page.getByText(/days remaining/i)).toBeVisible({
       timeout: 10_000,
     })
 
@@ -117,7 +117,7 @@ test.describe('Manager: Approve/Deny Requests', () => {
     // but available should still read 15 until approved (pending ≠ deducted yet).
     // We don't hard-code the exact number here — we just confirm a number IS shown.
     // (The exact value is tested indirectly via the submit tests.)
-    const balanceText = await page.getByText(/days available/i).textContent()
+    const balanceText = await page.getByText(/days remaining/i).textContent()
     expect(balanceText).toBeTruthy()
   })
 })

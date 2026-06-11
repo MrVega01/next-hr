@@ -14,6 +14,8 @@ export const queryClient = new QueryClient({
 export const QueryKeys = {
   balance: (employeeId: string, locationId: string, balanceType: string) =>
     ['balance', employeeId, locationId, balanceType] as const,
+  balancePrefix: (employeeId: string) =>
+    ['balance', employeeId] as const,
   balances: (employeeId: string) =>
     ['balances', employeeId] as const,
   requests: (employeeId: string) =>

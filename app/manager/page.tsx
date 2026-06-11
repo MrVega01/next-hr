@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAllRequests } from '@/features/time-off/hooks'
+import { QueryKeys } from '@/lib/query-client'
+import { RefreshCw } from 'lucide-react'
 import { ApprovalPanel } from '@/features/time-off/components/ApprovalPanel'
 import { PendingRequestRow } from '@/features/time-off/components/PendingRequestRow'
 import { LoadingSkeleton } from '@/features/time-off/components/LoadingSkeleton'
@@ -27,16 +30,16 @@ const LOCATION_LABELS: Record<string, string> = {
   'loc-sf': 'San Francisco',
 }
 
-const EMPLOYEE_NAMES: Record<string, string> = {
-  'emp-001': 'Alice Johnson',
-  'emp-002': 'Bob Martinez',
-  'emp-003': 'Carol Smith',
-}
 
 export default function ManagerPage() {
-  const { data, isLoading, isError, refetch } = useAllRequests()
+  const { data, isLoading, isError, isFetching } = useAllRequests()
+  const queryClient = useQueryClient()
   const [selectedRequest, setSelectedRequest] =
     useState<TimeOffRequest | null>(null)
+
+  function handleRefresh() {
+    void queryClient.invalidateQueries({ queryKey: QueryKeys.allRequests() })
+  }
 
   if (isLoading) {
     return (
@@ -67,7 +70,7 @@ export default function ManagerPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
+              onClick={handleRefresh}
               className="border-red-500/40 text-red-400 hover:bg-red-500/10"
             >
               Retry
@@ -99,13 +102,25 @@ export default function ManagerPage() {
     <>
       <div className="space-y-8">
         {/* Page header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100">
-            Team Time-Off Requests
-          </h1>
-          <p className="mt-0.5 text-sm text-slate-400">
-            Review and action pending requests from your team
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-100">
+              Team Time-Off Requests
+            </h1>
+            <p className="mt-0.5 text-sm text-slate-400">
+              Review and action pending requests from your team
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isFetching}
+            className="shrink-0 text-slate-400 hover:text-slate-200"
+          >
+            <RefreshCw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            {isFetching ? 'Refreshing...' : 'Refresh'}
+          </Button>
         </div>
 
         {/* Pending requests grouped by location */}
@@ -185,10 +200,7 @@ export default function ManagerPage() {
           <DialogHeader>
             <DialogTitle className="text-slate-100">
               Review Request —{' '}
-              {selectedRequest
-                ? (EMPLOYEE_NAMES[selectedRequest.employeeId] ??
-                  selectedRequest.employeeId)
-                : ''}
+              {selectedRequest?.employeeName ?? ''}
             </DialogTitle>
           </DialogHeader>
           {selectedRequest && (
