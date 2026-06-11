@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
 import { BalanceCard } from './BalanceCard'
-import { makeBalance } from './_stories-helpers'
+import { makeBalance } from '../_stories-helpers'
 
 const meta = {
   title: 'Time Off/BalanceCard',

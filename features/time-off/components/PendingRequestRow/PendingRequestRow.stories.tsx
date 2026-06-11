@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
 import { within, expect } from '@storybook/test'
 import { PendingRequestRow } from './PendingRequestRow'
-import { makeRequest } from './_stories-helpers'
+import { makeRequest } from '../_stories-helpers'
 
 const meta = {
   title: 'Time Off/PendingRequestRow',

@@ -6,9 +6,9 @@ import { useBalances } from '@/features/time-off/hooks'
 import { QueryKeys } from '@/lib/query-client'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { BalanceCard } from './BalanceCard'
-import { LoadingSkeleton } from './LoadingSkeleton'
-import { EmptyState } from './EmptyState'
+import { BalanceCard } from '../BalanceCard'
+import { LoadingSkeleton } from '../LoadingSkeleton'
+import { EmptyState } from '../EmptyState'
 
 interface BalanceListProps {
   employeeId: string

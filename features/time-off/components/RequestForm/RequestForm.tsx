@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useBalance, useSubmitRequest } from '@/features/time-off/hooks'
-import { ReconciliationBanner } from './ReconciliationBanner'
+import { ReconciliationBanner } from '../ReconciliationBanner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

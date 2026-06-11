@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
 import { RequestForm } from './RequestForm'
-import { makeBalance } from './_stories-helpers'
+import { makeBalance } from '../_stories-helpers'
 
 // QueryKeys.balance('emp-001', 'loc-nyc', 'vacation') === ['balance', 'emp-001', 'loc-nyc', 'vacation']
 const aliceCacheKey = JSON.stringify(['balance', 'emp-001', 'loc-nyc', 'vacation'])

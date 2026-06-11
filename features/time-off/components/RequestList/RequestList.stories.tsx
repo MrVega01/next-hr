@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
 import { RequestList } from './RequestList'
-import { makeRequest } from './_stories-helpers'
+import { makeRequest } from '../_stories-helpers'
 import type { TimeOffRequest } from '@/features/time-off/types'
 
 // QueryKeys.requests('emp-001') === ['requests', 'emp-001']

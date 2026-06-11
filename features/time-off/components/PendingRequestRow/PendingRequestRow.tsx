@@ -1,6 +1,6 @@
 'use client'
 
-import { StatusBadge } from './StatusBadge'
+import { StatusBadge } from '../StatusBadge'
 import type { TimeOffRequest } from '@/features/time-off/types'
 
 interface PendingRequestRowProps {

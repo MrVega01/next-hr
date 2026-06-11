@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
 import { within, expect } from '@storybook/test'
 import { BalanceList } from './BalanceList'
-import { makeBalance } from './_stories-helpers'
+import { makeBalance } from '../_stories-helpers'
 import type { HcmBatchBalancesResponse } from '@/features/time-off/types'
 
 // QueryKeys.balances('emp-001') === ['balances', 'emp-001']

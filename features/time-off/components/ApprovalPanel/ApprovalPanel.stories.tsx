@@ -3,7 +3,7 @@ import { within, userEvent, expect } from '@storybook/test'
 import React from 'react'
 import { http, HttpResponse } from 'msw'
 import { ApprovalPanel } from './ApprovalPanel'
-import { makeRequest, makeBalance } from './_stories-helpers'
+import { makeRequest, makeBalance } from '../_stories-helpers'
 import { useUiStore } from '@/features/time-off/store/uiStore'
 
 // QueryKeys.balance('emp-001', 'loc-nyc', 'vacation') === ['balance', 'emp-001', 'loc-nyc', 'vacation']

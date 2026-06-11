@@ -6,8 +6,8 @@ import { denyRequest } from '@/features/time-off/api/hcmClient'
 import { useUiStore } from '@/features/time-off/store/uiStore'
 import { QueryKeys } from '@/lib/query-client'
 import { Button } from '@/components/ui/button'
-import { StaleIndicator } from './StaleIndicator'
-import { StatusBadge } from './StatusBadge'
+import { StaleIndicator } from '../StaleIndicator'
+import { StatusBadge } from '../StatusBadge'
 import type { HcmSubmitResult, TimeOffRequest } from '@/features/time-off/types'
 
 interface ApprovalPanelProps {

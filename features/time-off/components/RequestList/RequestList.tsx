@@ -1,9 +1,9 @@
 'use client'
 
 import { useRequests } from '@/features/time-off/hooks'
-import { LoadingSkeleton } from './LoadingSkeleton'
-import { EmptyState } from './EmptyState'
-import { PendingRequestRow } from './PendingRequestRow'
+import { LoadingSkeleton } from '../LoadingSkeleton'
+import { EmptyState } from '../EmptyState'
+import { PendingRequestRow } from '../PendingRequestRow'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import type { TimeOffRequest } from '@/features/time-off/types'
 
