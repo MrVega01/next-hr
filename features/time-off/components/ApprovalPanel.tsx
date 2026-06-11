@@ -66,6 +66,9 @@ function useDenyRequest() {
       void queryClient.invalidateQueries({
         queryKey: QueryKeys.requests(employeeId),
       })
+      void queryClient.invalidateQueries({
+        queryKey: QueryKeys.allRequests(),
+      })
 
       addToast({
         id: `toast-deny-ok-${Date.now()}`,
@@ -134,7 +137,7 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
         <div>
           <p className="text-xs text-slate-500">Employee</p>
           <p className="mt-0.5 font-medium text-slate-200">
-            {request.employeeId}
+            {request.employeeName ?? request.employeeId}
           </p>
         </div>
         <div>
@@ -177,17 +180,29 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
             Verifying current balance...
           </p>
         ) : balanceQuery.data ? (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
+            {/* Total = availableDays + pendingDays (pending was already
+                deducted from available on submit, so adding back gives the
+                true remaining balance before any pending requests clear) */}
             <p className="font-mono text-3xl font-bold text-slate-100">
-              {balanceQuery.data.availableDays}
+              {balanceQuery.data.availableDays + balanceQuery.data.pendingDays}
               <span className="ml-1 text-sm font-normal text-slate-400">
-                days available
+                days remaining
               </span>
             </p>
-            {balanceQuery.data.pendingDays > 0 && (
-              <p className="text-xs font-mono text-amber-400">
-                {balanceQuery.data.pendingDays} days pending
+            {balanceQuery.data.pendingDays > 0 ? (
+              <p className="text-xs text-slate-400">
+                <span className="font-mono text-amber-400">
+                  {balanceQuery.data.pendingDays}
+                </span>
+                {' '}held for pending requests —{' '}
+                <span className="font-mono text-slate-200">
+                  {balanceQuery.data.availableDays}
+                </span>
+                {' '}free
               </p>
+            ) : (
+              <p className="text-xs text-slate-500">No other pending requests</p>
             )}
             <StaleIndicator
               asOf={balanceQuery.data.asOf}

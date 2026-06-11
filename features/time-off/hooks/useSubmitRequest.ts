@@ -173,8 +173,12 @@ export function useSubmitRequest() {
         queryKey: QueryKeys.balance(employeeId, locationId, variables.balanceType),
       })
 
-      // 2. If success, delay-invalidate requests list
+      // 2. If success, also refresh the batch balances (drives BalanceList cards)
+      // and the requests history.
       if (result?.success) {
+        void queryClient.invalidateQueries({
+          queryKey: QueryKeys.balances(employeeId),
+        })
         setTimeout(() => {
           void queryClient.invalidateQueries({
             queryKey: QueryKeys.requests(employeeId),

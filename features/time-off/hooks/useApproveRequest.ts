@@ -49,12 +49,14 @@ export function useApproveRequest() {
         return
       }
 
-      // Invalidate balance and requests on success
       void queryClient.invalidateQueries({
         queryKey: QueryKeys.balance(employeeId, locationId, balanceType),
       })
       void queryClient.invalidateQueries({
         queryKey: QueryKeys.requests(employeeId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: QueryKeys.allRequests(),
       })
 
       addToast({
