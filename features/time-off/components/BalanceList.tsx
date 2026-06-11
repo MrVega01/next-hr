@@ -71,7 +71,7 @@ export function BalanceList({ employeeId }: BalanceListProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         {lastSynced && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-amber-400">
             Last synced at {lastSynced}
           </p>
         )}

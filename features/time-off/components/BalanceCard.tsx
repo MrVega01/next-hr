@@ -7,12 +7,10 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { StaleIndicator } from './StaleIndicator'
 import type { Balance } from '@/features/time-off/types'
 
 interface BalanceCardProps {
   balance: Balance
-  isStale?: boolean
   isFetching?: boolean
 }
 
@@ -29,7 +27,6 @@ const LOCATION_LABELS: Record<string, string> = {
 
 export function BalanceCard({
   balance,
-  isStale = false,
   isFetching = false,
 }: BalanceCardProps) {
   const typeLabel =
@@ -75,8 +72,6 @@ export function BalanceCard({
           </p>
         )}
 
-        {/* Stale indicator */}
-        <StaleIndicator asOf={balance.asOf} isFetching={isFetching} />
       </CardContent>
     </Card>
   )

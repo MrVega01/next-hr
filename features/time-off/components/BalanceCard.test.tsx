@@ -27,13 +27,13 @@ describe('BalanceCard', () => {
     expect(screen.getByText(/3 days? pending/i)).toBeInTheDocument()
   })
 
-  it('shows fetching indicator (animate-spin) when isFetching is true', () => {
+  it('adds amber ring class when isFetching is true', () => {
     const { container } = render(
       <BalanceCard balance={makeBalance()} isFetching={true} />,
     )
-    // The StaleIndicator renders a Loader2 with animate-spin when isFetching=true
-    const spinner = container.querySelector('.animate-spin')
-    expect(spinner).toBeInTheDocument()
+    // The card applies a shadow/ring class to signal an in-flight background fetch
+    const card = container.firstElementChild
+    expect(card?.className).toMatch(/ring-amber/)
   })
 
   it('hides pending days text when pendingDays is 0', () => {
