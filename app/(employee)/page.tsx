@@ -1,4 +1,4 @@
-import { EmployeeView } from '@/app/_components/EmployeeView'
+import { EmployeeView } from '@/features/time-off/components/EmployeeView'
 
 export default function EmployeePage() {
   return <EmployeeView />
