@@ -11,7 +11,7 @@ export function useBalance(
   balanceType: string | null,
 ) {
   return useQuery<Balance>({
-    queryKey: QueryKeys.balance(employeeId ?? '', locationId ?? ''),
+    queryKey: QueryKeys.balance(employeeId ?? '', locationId ?? '', balanceType ?? ''),
     queryFn: () => fetchBalance(employeeId!, locationId!, balanceType!),
     enabled: !!employeeId && !!locationId && !!balanceType,
     staleTime: 10_000,

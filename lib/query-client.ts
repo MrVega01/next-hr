@@ -12,8 +12,8 @@ export const queryClient = new QueryClient({
 })
 
 export const QueryKeys = {
-  balance: (employeeId: string, locationId: string) =>
-    ['balance', employeeId, locationId] as const,
+  balance: (employeeId: string, locationId: string, balanceType: string) =>
+    ['balance', employeeId, locationId, balanceType] as const,
   balances: (employeeId: string) =>
     ['balances', employeeId] as const,
   requests: (employeeId: string) =>

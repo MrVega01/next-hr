@@ -38,7 +38,7 @@ function useDenyRequest() {
   return useMutation<
     HcmSubmitResult,
     Error,
-    { requestId: string; employeeId: string; locationId: string }
+    { requestId: string; employeeId: string; locationId: string; balanceType: string }
   >({
     mutationFn: ({ requestId }) => denyRequest(requestId),
 
@@ -50,7 +50,7 @@ function useDenyRequest() {
       })
     },
 
-    onSuccess: (result, { employeeId, locationId }) => {
+    onSuccess: (result, { employeeId, locationId, balanceType }) => {
       if (!result.success) {
         addToast({
           id: `toast-deny-err-${Date.now()}`,
@@ -61,7 +61,7 @@ function useDenyRequest() {
       }
 
       void queryClient.invalidateQueries({
-        queryKey: QueryKeys.balance(employeeId, locationId),
+        queryKey: QueryKeys.balance(employeeId, locationId, balanceType),
       })
       void queryClient.invalidateQueries({
         queryKey: QueryKeys.requests(employeeId),
@@ -110,6 +110,7 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
         requestId: request.id,
         employeeId: request.employeeId,
         locationId: request.locationId,
+        balanceType: request.balanceType,
       },
       { onSuccess: (r) => { if (r.success) onDone?.() } },
     )

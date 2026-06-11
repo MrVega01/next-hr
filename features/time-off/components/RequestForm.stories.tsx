@@ -2,10 +2,10 @@ import type { Meta, StoryObj } from '@storybook/nextjs'
 import { RequestForm } from './RequestForm'
 import { makeBalance } from './_stories-helpers'
 
-// QueryKeys.balance('emp-001', 'loc-nyc') === ['balance', 'emp-001', 'loc-nyc']
-const aliceCacheKey = JSON.stringify(['balance', 'emp-001', 'loc-nyc'])
-// QueryKeys.balance('emp-003', 'loc-nyc') === ['balance', 'emp-003', 'loc-nyc']
-const carolCacheKey = JSON.stringify(['balance', 'emp-003', 'loc-nyc'])
+// QueryKeys.balance('emp-001', 'loc-nyc', 'vacation') === ['balance', 'emp-001', 'loc-nyc', 'vacation']
+const aliceCacheKey = JSON.stringify(['balance', 'emp-001', 'loc-nyc', 'vacation'])
+// QueryKeys.balance('emp-003', 'loc-nyc', 'vacation') === ['balance', 'emp-003', 'loc-nyc', 'vacation']
+const carolCacheKey = JSON.stringify(['balance', 'emp-003', 'loc-nyc', 'vacation'])
 
 const meta = {
   title: 'Time Off/RequestForm',

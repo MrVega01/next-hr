@@ -64,7 +64,7 @@ beforeEach(() => {
 
   // Pre-seed Alice's balance in the query cache
   queryClient.setQueryData<Balance>(
-    QueryKeys.balance('emp-001', 'loc-nyc'),
+    QueryKeys.balance('emp-001', 'loc-nyc', 'vacation'),
     aliceVacationBalance,
   )
 
@@ -116,7 +116,7 @@ describe('useSubmitRequest', () => {
     // Wait for onMutate to complete (cancelQueries + setQueryData)
     await waitFor(() => {
       const cached = queryClient.getQueryData<Balance>(
-        QueryKeys.balance('emp-001', 'loc-nyc'),
+        QueryKeys.balance('emp-001', 'loc-nyc', 'vacation'),
       )
       expect(cached?.availableDays).toBe(12)
     }, { timeout: 500 })
@@ -148,7 +148,7 @@ describe('useSubmitRequest', () => {
 
     // Balance should be rolled back — onSuccess with success:false restores previousBalance
     const cached = queryClient.getQueryData<Balance>(
-      QueryKeys.balance('emp-001', 'loc-nyc'),
+      QueryKeys.balance('emp-001', 'loc-nyc', 'vacation'),
     )
     // onSettled also fires invalidateQueries; but with gcTime=60s and no observer, data persists
     // After rollback in onSuccess + invalidation in onSettled, data may be stale but present

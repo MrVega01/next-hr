@@ -38,7 +38,7 @@ export function useApproveRequest() {
       })
     },
 
-    onSuccess: (result, { employeeId, locationId }) => {
+    onSuccess: (result, { employeeId, locationId, balanceType }) => {
       if (!result.success) {
         const message = resolveApproveErrorMessage(result.errorCode)
         addToast({
@@ -51,7 +51,7 @@ export function useApproveRequest() {
 
       // Invalidate balance and requests on success
       void queryClient.invalidateQueries({
-        queryKey: QueryKeys.balance(employeeId, locationId),
+        queryKey: QueryKeys.balance(employeeId, locationId, balanceType),
       })
       void queryClient.invalidateQueries({
         queryKey: QueryKeys.requests(employeeId),

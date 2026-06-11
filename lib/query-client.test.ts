@@ -2,7 +2,7 @@ import { QueryKeys } from '@/lib/query-client'
 
 describe('QueryKeys', () => {
   it('balance returns correct key tuple', () => {
-    expect(QueryKeys.balance('emp-001', 'loc-nyc')).toEqual(['balance', 'emp-001', 'loc-nyc'])
+    expect(QueryKeys.balance('emp-001', 'loc-nyc', 'vacation')).toEqual(['balance', 'emp-001', 'loc-nyc', 'vacation'])
   })
 
   it('balances returns correct key tuple', () => {

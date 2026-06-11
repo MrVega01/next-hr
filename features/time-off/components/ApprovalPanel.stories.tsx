@@ -6,8 +6,8 @@ import { ApprovalPanel } from './ApprovalPanel'
 import { makeRequest, makeBalance } from './_stories-helpers'
 import { useUiStore } from '@/features/time-off/store/uiStore'
 
-// QueryKeys.balance('emp-001', 'loc-nyc') === ['balance', 'emp-001', 'loc-nyc']
-const balanceCacheKey = JSON.stringify(['balance', 'emp-001', 'loc-nyc'])
+// QueryKeys.balance('emp-001', 'loc-nyc', 'vacation') === ['balance', 'emp-001', 'loc-nyc', 'vacation']
+const balanceCacheKey = JSON.stringify(['balance', 'emp-001', 'loc-nyc', 'vacation'])
 
 const submittedRequest = makeRequest({
   id: 'req-001',
