@@ -1,8 +1,10 @@
 # Technical Requirements Document: ExampleHR Time-Off Frontend
 
-**Version:** 1.0  
-**Date:** 2026-06-10  
+**Version:** 1.1  
+**Date:** 2026-06-11  
 **Audience:** Senior engineers who need to understand and challenge the design decisions
+
+> **Changelog (1.1):** Per-cell balance cache key now includes `balanceType` as a fourth segment (`['balance', employeeId, locationId, balanceType]`), isolating each leave type's cache. `useReconciliation` split into a detection effect and a React-lifecycle refresh effect. Manager approval now only clears `pendingDays` (no double-decrement); deny restores `availableDays`. Submit and approve/deny now refresh the batch-balance and request-list caches so cards and lists update without a manual refresh. Requests carry an `employeeName` enriched at read time. `ReconciliationBanner` relocated into `RequestForm`.
 
 ---
 
@@ -71,7 +73,7 @@ interface Balance {
 }
 ```
 
-A balance is identified by the **tuple `(employeeId, locationId, balanceType)`**. This is the granularity at which all reads, writes, and invalidations operate. The `version` field is the HCM's etag — a monotonically-bumped opaque string (e.g. `v1748736000000`) that changes on every HCM-side write to that cell. It is the concurrency token for all version-gated operations.
+A balance is identified by the **tuple `(employeeId, locationId, balanceType)`**. This is the granularity at which all reads, writes, and invalidations operate, and it maps directly onto the per-cell query key `['balance', employeeId, locationId, balanceType]` (see §6). The `version` field is the HCM's etag — a monotonically-bumped opaque string (e.g. `v1748736000000`) that changes on every HCM-side write to that cell. It is the concurrency token for all version-gated operations.
 
 `asOf` is the timestamp of the last read from HCM and is surfaced in the UI as a staleness signal.
 
@@ -91,6 +93,7 @@ interface TimeOffRequest {
   createdAt: string
   updatedAt: string
   baseVersion: string             // HCM balance version at time of submit
+  employeeName?: string           // enriched at read time, not stored
   hcmRejectionReason?: string
   reconciledAt?: string
 }
@@ -98,14 +101,16 @@ interface TimeOffRequest {
 
 `baseVersion` records the HCM balance version that was current when the request was submitted. This is the concurrency anchor for version-conflict detection during manager approval.
 
+`employeeName` is **optional and derived, not persisted**. The engine stores only `employeeId`; `getRequests` enriches each record by resolving the employee at read time (`getEmployee(r.employeeId)?.name`). This keeps the manager view free of hardcoded ID→name maps — the display name always comes from the same source of truth as the rest of the data — while avoiding a denormalized name that could drift from the employee record.
+
 ### Request lifecycle
 
 ```
 draft
   └─► optimistic-pending    (onMutate: optimistic delta applied, request added to UI)
         ├─► submitted        (onSettled: HCM confirmed persistence)
-        │     ├─► approved
-        │     ├─► denied     (balance pendingDays restored)
+        │     ├─► approved   (pendingDays cleared; availableDays already debited at submit)
+        │     ├─► denied     (availableDays restored, pendingDays cleared)
         │     └─► needs-attention  (reconciliation detected contradiction)
         └─► rolled-back      (onError or success=false: cache snapshot restored)
 ```
@@ -181,7 +186,9 @@ Using the per-cell endpoint for display would cause thrashing. Using the batch e
 | Mode | Endpoint | Hook | staleTime | Interval | Used for |
 |---|---|---|---|---|---|
 | **Batch corpus** | `GET /api/hcm/balances?employeeId=` | `useBalances` | 30s (global default) | 60s | Initial hydration, BalanceList display, background reconciliation |
-| **Per-cell authoritative** | `GET /api/hcm/balance?employeeId=&locationId=` | `useBalance` | 10s | None (window focus only) | RequestForm preview, submit-settle re-read, manager approval gate |
+| **Per-cell authoritative** | `GET /api/hcm/balance?employeeId=&locationId=&balanceType=` | `useBalance` | 10s | None (window focus only) | RequestForm preview, submit-settle re-read, manager approval gate |
+
+The per-cell query is keyed by all three dimensions — `['balance', employeeId, locationId, balanceType]`. The `balanceType` segment was added in 1.1: without it, switching the RequestForm's leave-type selector reused the previously-fetched cell (e.g. showing vacation days under "Sick Leave"). Each leave type now has its own isolated cache entry.
 
 ### Global QueryClient defaults
 
@@ -222,7 +229,7 @@ This is the most consequential architectural decision in the system. The full re
 **What happens:**
 
 1. **`onMutate`** fires synchronously before the network request:
-   - `cancelQueries` kills any in-flight background refetches for `['balance', employeeId, locationId]` and `['balances', employeeId]` — preventing a landing refetch from clobbering the optimistic state
+   - `cancelQueries` kills any in-flight background refetches for `['balance', employeeId, locationId, balanceType]` and `['balances', employeeId]` — preventing a landing refetch from clobbering the optimistic state
    - Snapshots current cache for rollback: `previousBalance` and `previousBalances`
    - Applies the optimistic delta to the per-cell balance: `availableDays -= days`, `pendingDays += days`
    - Registers an `OptimisticEntry` in the Zustand `optimisticRegistry` with the key `${employeeId}:${locationId}:${balanceType}`, recording `deltaApplied`, `baseVersion`, and `timestamp`
@@ -238,9 +245,9 @@ This is the most consequential architectural decision in the system. The full re
    - Shows a code-specific error toast
 
 4. **`onSettled`** (always fires, regardless of outcome):
-   - Fires `invalidateQueries` on `QueryKeys.balance(employeeId, locationId)` — triggers the authoritative re-read
+   - Fires `invalidateQueries` on `QueryKeys.balance(employeeId, locationId, balanceType)` — triggers the authoritative per-cell re-read
    - Does **not** unregister from `optimisticRegistry` here; the reconciliation watcher owns that cleanup once the re-read lands (see §7)
-   - On success, delays 500ms then invalidates `QueryKeys.requests(employeeId)` — the delay gives HCM time to propagate the new request before the list query fires
+   - On success, also invalidates `QueryKeys.balances(employeeId)` (the batch corpus) so the `BalanceList` cards reflect the new available/pending counts immediately rather than waiting for the next 60s tick, and — after a 500ms delay — `QueryKeys.requests(employeeId)`. The delay gives HCM time to propagate the new request before the list query fires
 
 **Why optimistic is justified here:**
 
@@ -255,7 +262,7 @@ This is the most consequential architectural decision in the system. The full re
 **What happens:**
 
 1. **`mutationFn`** executes before any cache update:
-   - `fetchBalance(employeeId, locationId)` — a direct per-cell HCM read, bypassing cache entirely (`useQueryClient` is not involved here)
+   - `fetchBalance(employeeId, locationId, balanceType)` — a direct per-cell HCM read, bypassing cache entirely (`useQueryClient` is not involved here)
    - Extracts `currentVersion` from the response
    - Calls `approveRequest(requestId, employeeId, locationId, currentVersion)` with the freshly-read version
 
@@ -263,10 +270,12 @@ This is the most consequential architectural decision in the system. The full re
    - Maps `errorCode` to user-facing message (`VERSION_CONFLICT` → "Balance changed since you loaded this page. Please refresh.", `INSUFFICIENT_BALANCE` → "Insufficient balance — the employee no longer has enough days.")
 
 3. **`onSuccess`** with `result.success === true`:
-   - Invalidates both `QueryKeys.balance(employeeId, locationId)` and `QueryKeys.requests(employeeId)`
+   - Invalidates `QueryKeys.balance(employeeId, locationId, balanceType)`, `QueryKeys.requests(employeeId)`, **and `QueryKeys.allRequests()`** — the last refreshes the manager's cross-employee pending list and history so the actioned request leaves the pending group immediately. Deny (`useDenyRequest` in `ApprovalPanel`) invalidates the same three keys
    - Shows success toast
 
 Note: `mutationFn` is `async` — the re-read and the write are sequential within the mutation function itself, not split across `onMutate`/`onSuccess`. This means the version token never sits in cache between reads; it is always read immediately before use.
+
+**Engine-side accounting (corrected in 1.1):** `availableDays` is debited **once**, at submit time, with the debited amount held in `pendingDays`. Approval therefore only clears the `pendingDays` reservation — it must not debit `availableDays` again. Its sufficiency check is `pendingDays >= request.days` (the reserved slot), not `availableDays >= request.days`; the latter caused false `INSUFFICIENT_BALANCE` rejections when multiple requests were pending simultaneously. Deny reverses the submit: it restores `availableDays` and clears `pendingDays`. The manager's `ApprovalPanel` displays a single merged figure — `availableDays + pendingDays` labelled "days remaining" — with a sub-line breaking out how many days are held for pending requests, so the manager sees the employee's true remaining balance rather than two numbers that look contradictory.
 
 **Why pessimistic is justified here:**
 
@@ -294,11 +303,16 @@ Employee submit would require waiting for a round-trip GET before even showing "
 
 ## 6. Cache Invalidation Strategy
 
-### Narrow invalidation after mutation
+### Targeted invalidation after mutation
 
-After a successful submit, only `QueryKeys.balance(employeeId, locationId)` is invalidated — not `QueryKeys.balances(employeeId)` (the full corpus). The corpus is the periodic safety net for background reconciliation, not the real-time feedback path.
+Every submit — success or failure — invalidates `QueryKeys.balance(employeeId, locationId, balanceType)`, the per-cell key. This is the authoritative re-read that the reconciliation watcher checks against (§7), and the per-cell endpoint is fast, so it runs unconditionally.
 
-Invalidating the full corpus on every submit would cause an 800ms batch endpoint fetch after every user action. Narrow invalidation targets only the cell that was mutated, and the per-cell endpoint is fast.
+The batch corpus (`QueryKeys.balances(employeeId)`, which drives the `BalanceList` cards) is invalidated **only on success**. This is a deliberate cost/benefit split:
+
+- **On failure**, the optimistic delta has already been rolled back from the cache, so the cards are correct without a refetch — paying the 800ms batch latency would be wasted work.
+- **On success**, the cards must reflect the new available/pending counts right away. Before 1.1 they only updated on the next 60s tick or a manual Refresh, which read as "the balance didn't change." Invalidating the corpus on success closes that gap; the 800ms cost is acceptable because it happens once, on the confirmed happy path, in the background (`isFetching` keeps the old values visible until it lands).
+
+The request list (`QueryKeys.requests(employeeId)`) is invalidated on success after a 500ms delay (HCM propagation). Manager approve/deny additionally invalidate `QueryKeys.allRequests()` so the cross-employee manager view refreshes.
 
 ### Background corpus refresh (60s)
 
@@ -354,26 +368,30 @@ The registry entry is registered in `onMutate`. It is unregistered by the reconc
 
 **Scenario:** HCM returns `{ success: true, requestId: "req-101" }` but does not decrement the balance. The `onSettled` authoritative re-read fires and returns the original balance (no version change, no debit). The optimistic decrement was incorrect.
 
-**Detection:** `useReconciliation` subscribes to TanStack Query cache updates via `queryCache.subscribe`. It filters to genuine fetch completions (`event.action.type === 'success'`) to avoid reacting to `setQueryData` calls (optimistic writes) or `invalidate` actions, which also fire `updated` events but carry no server-authoritative data. On every such event for a `['balance', employeeId, locationId]` key:
+**Detection (effect 1):** `useReconciliation` subscribes to TanStack Query cache updates via `queryCache.subscribe`. It filters to genuine fetch completions (`event.action.type === 'success'`) to avoid reacting to `setQueryData` calls (optimistic writes) or `invalidate` actions, which also fire `updated` events but carry no server-authoritative data. On every such event for a `['balance', employeeId, locationId, balanceType]` key:
 
 ```typescript
-// useReconciliation in useSubmitRequest.ts
+// useReconciliation, effect 1 — detection only
 queryCache.subscribe((event: QueryCacheNotifyEvent) => {
   if (event.type !== 'updated') return
   if (event.action.type !== 'success') return  // only genuine fetch completions
-  // Only react to per-cell balance keys
-  if (queryKey[0] !== 'balance' || queryKey.length !== 3) return
+  // Only react to per-cell balance keys (now 4 segments: + balanceType)
+  if (queryKey[0] !== 'balance' || queryKey.length !== 4) return
+
+  const qEmployeeId = queryKey[1], locationId = queryKey[2], balanceType = queryKey[3]
 
   // Check registry for matching in-flight optimistic entries
   for (const [key, entry] of Object.entries(registry)) {
-    if (entry.employeeId !== employeeId || entry.locationId !== locationId) continue
+    if (entry.employeeId !== qEmployeeId ||
+        entry.locationId !== locationId ||
+        entry.balanceType !== balanceType) continue
     // Mismatch: server's available days differ from what we expected after our delta.
     // snapshotAvailableDays=-1 means cache was cold at submit time; skip in that case.
     const expectedAvailable = entry.snapshotAvailableDays + entry.deltaApplied
     const balanceMismatch = entry.snapshotAvailableDays >= 0 &&
       freshBalance.availableDays !== expectedAvailable
     if (balanceMismatch) {
-      // Fire warning toast
+      addToast({ type: 'warning', requestId: entry.requestId, message: '...' })
     }
     // Always unregister — the authoritative re-read has landed.
     unregisterOptimistic(key)
@@ -381,9 +399,27 @@ queryCache.subscribe((event: QueryCacheNotifyEvent) => {
 })
 ```
 
+Note the `entry.balanceType !== balanceType` filter: now that the key is per-type, a vacation re-read must not reconcile against a pending sick-leave entry.
+
 **Why `balanceMismatch` instead of `versionChanged`:** A normal successful submit also bumps the HCM version (the engine writes a new `v${Date.now()}` on every debit). Checking only `versionChanged` would fire a false-positive warning on every successful submit. Checking the actual available-day count — `freshBalance.availableDays !== snapshotAvailableDays + deltaApplied` — fires only when the server returned a balance that does not reflect the expected deduction, which is exactly the silent-failure and anniversary-bonus scenarios.
 
-**Surfacing:** `ReconciliationBanner` renders any `warning` toast with a `requestId` as an amber dismissible banner. The banner is the only way reconciliation warnings are surfaced — they are never silent, and they never flip request status without user acknowledgment.
+**Refresh (effect 2):** Detection alone updates the per-cell cache, but the `BalanceList` cards (batch corpus) and the request history would still show stale numbers until the next 60s tick. The instinct is to call `invalidateQueries` from inside the `queryCache.subscribe` callback — but that callback runs **inside TanStack Query's own notification cycle**, where `invalidateQueries` is unreliable (it was observed to no-op, and wrapping it in `setTimeout(0)` did not fix it). The robust fix is a **second `useEffect` that watches Zustand's reactive toast state** rather than the query cache:
+
+```typescript
+// useReconciliation, effect 2 — refresh from React's normal lifecycle
+useEffect(() => {
+  const count = toasts.filter((t) => t.type === 'warning' && t.requestId).length
+  if (count > prevReconciliationCountRef.current) {
+    void queryClient.invalidateQueries({ queryKey: QueryKeys.balances(employeeId) })
+    void queryClient.invalidateQueries({ queryKey: QueryKeys.requests(employeeId) })
+  }
+  prevReconciliationCountRef.current = count
+}, [toasts, employeeId, queryClient])
+```
+
+Effect 1 emits a warning toast into Zustand; that state change re-renders the hook; effect 2 sees the reconciliation-toast count rise and fires the invalidations from React's ordinary render lifecycle — outside the query notification cycle — where they reliably take effect. The split is the key insight: **detection happens inside the cache subscriber, but the cache mutation it triggers must happen outside it.**
+
+**Surfacing:** `ReconciliationBanner` renders any `warning` toast with a `requestId` as an amber dismissible banner. In 1.1 it lives **inside `RequestForm`**, directly above the submit button (rather than at the top of the page), with plain-language copy — the warning appears at the exact point where the user is about to act on the number that changed. It is the only way reconciliation warnings are surfaced — they are never silent, and they never flip request status without user acknowledgment.
 
 The request transitions to `needs-attention` — it is recoverable (the user can re-submit) and visible. It is never silently left as `submitted` when the HCM did not apply the debit.
 
@@ -403,19 +439,26 @@ app/layout.tsx (server)
 
 Employee View (/)
   └── EmployeeView (client)
-      ├── useReconciliation()       — subscribes to cache; fires warning toasts on contradictions
-      ├── ReconciliationBanner      — renders warning toasts with requestId; dismissible
+      ├── useReconciliation(activeId)  — subscribes to cache; fires warning toasts on
+      │                                  contradictions, then refreshes corpus + history
       ├── BalanceList               — uses useBalances (corpus, 60s interval)
-      │   └── BalanceCard[]         — per-balance display; StaleIndicator shows asOf age
-      ├── RequestForm               — uses useBalance (per-cell, staleTime:10s) for preview
-      │                               uses useSubmitRequest for submission
+      │   │                           Refresh button invalidates balances + balancePrefix
+      │   │                           + requests; "Last synced at" shown in amber
+      │   └── BalanceCard[]         — per-balance display; amber ring while isFetching
+      ├── RequestForm               — uses useBalance (per-cell, staleTime:10s, keyed by
+      │   │                           balanceType) for preview; available days update when
+      │   │                           the leave-type selector changes
+      │   │                           uses useSubmitRequest for submission
+      │   └── ReconciliationBanner  — renders warning toasts with requestId; dismissible;
+      │                               sits directly above the submit button
       └── RequestList               — uses useRequests; shows all statuses including needs-attention
 
 Manager View (/manager)
   └── (client page)
       ├── useAllRequests            — all pending requests across all employees
-      └── PendingRequestRow[]
-          └── ApprovalPanel (Dialog)
+      ├── Refresh button            — invalidates allRequests (pending + history)
+      └── PendingRequestRow[]       — shows request.employeeName (resolved by the engine)
+          └── ApprovalPanel (Dialog)— title + body show employeeName, not employeeId
               └── useApproveRequest — pessimistic: re-reads balance, version-gates write
 ```
 
@@ -427,7 +470,7 @@ Manager View (/manager)
 
 **Feature components are self-contained with their own hooks.** `BalanceList` knows how to fetch its own data; `RequestForm` knows how to submit; `ApprovalPanel` knows how to approve. There is no prop-drilling of query results. This makes each component independently testable and replaceable.
 
-**`useReconciliation` is mounted at the `EmployeeView` level**, not inside `RequestForm` or `BalanceCard`. This is because reconciliation events can arrive from any background refresh, regardless of which sub-component is currently rendered. Mounting it at the feature root ensures it is active for the entire session on the employee view.
+**`useReconciliation` is mounted at the `EmployeeView` level**, not inside `RequestForm` or `BalanceCard`. This is because reconciliation events can arrive from any background refresh, regardless of which sub-component is currently rendered. Mounting it at the feature root ensures it is active for the entire session on the employee view. The hook is invoked with `activeId` (the currently-selected employee), so it must be called after that id is resolved. Note the separation of concerns: the *detection hook* lives at the feature root for full-session coverage, but the *banner it feeds* lives inside `RequestForm` — warnings are emitted globally yet surfaced at the point of action.
 
 ---
 
@@ -459,6 +502,8 @@ Manager View (/manager)
 - The Next.js route handler correctly proxies to the HCM engine
 - The MSW worker intercepts correctly in the browser environment (not just Vitest's Node environment)
 - The full employee submit → manager approval lifecycle, including the version-gate rejection scenario
+- **Leave-type cache isolation** (`leave-type-switch.spec.ts`): switching the selector updates the displayed available days and the insufficient-balance guard per type — the regression that motivated the 4-segment per-cell key
+- **Post-mutation auto-refresh** (`reconciliation-refresh.spec.ts`): the balance cards and request history update when a reconciliation warning appears, and a normal submit raises no spurious warning — guarding the two-effect `useReconciliation` design (§7)
 
 ### What is deliberately not tested
 
@@ -510,11 +555,15 @@ The ambient 10% silent fail rate is intentional — it exercises the reconciliat
 
 | Behavior | Trigger | Effect |
 |---|---|---|
+| Submit debit | `submitRequest(...)` | `availableDays -= days`, `pendingDays += days`, bumps version — the single point where `availableDays` is reduced |
 | Silent failure | `shouldSilentFail()` | Returns `success: true` + `requestId` but does NOT decrement balance; request stored as `silent-failure` internally |
 | Version conflict | `shouldConflict() \|\| balance.version !== expectedVersion` | Returns `VERSION_CONFLICT` error — evaluated in both `submitRequest` and `approveRequest` |
-| Insufficient balance | `balance.availableDays < req.days` | Returns `INSUFFICIENT_BALANCE` error — hard rejection, no request stored |
+| Insufficient (submit) | `balance.availableDays < req.days` | Returns `INSUFFICIENT_BALANCE` — hard rejection, no request stored |
+| Insufficient (approve) | `balance.pendingDays < request.days` | Returns `INSUFFICIENT_BALANCE` — the reserved slot, not `availableDays` (which was already debited at submit) |
+| Approve | `approveRequest(...)` | Clears the reservation: `pendingDays -= days`; does **not** touch `availableDays` again; bumps version |
+| Deny + restore | `denyRequest(requestId)` | For `submitted` requests, restores `availableDays += days` and clears `pendingDays -= days`; bumps version |
 | Anniversary bonus | `triggerAnniversaryBonus(employeeId)` | Adds 3 days to vacation balance, bumps version — detectable by `useReconciliation` |
-| Deny + restore | `denyRequest(requestId)` | For `submitted` requests, restores `pendingDays` to balance + bumps version |
+| Name enrichment | `getRequests(...)` | Each returned request is enriched with `employeeName` via `getEmployee(employeeId)?.name` — derived at read time, never stored |
 | Batch latency | (in MSW handler) | 800ms simulated delay on `GET /api/hcm/balances` |
 
 ### Test scenario catalog
@@ -599,4 +648,4 @@ MSW runs as a Service Worker in the browser (`public/mockServiceWorker.js`) and 
 
 ### Seed state
 
-The HCM engine seeds on first import. Call `resetState()` in test `beforeEach` to restore to seed values. The seed includes one `submitted` request (Carol, req-seed-003) that is pre-positioned for the manager approval scenario without needing a submit step in the test.
+The HCM engine seeds on first import. Call `resetState()` in test `beforeEach` to restore to seed values. The seed includes three historical requests (`req-seed-001/002/003`), all in terminal `approved` status so the seeded balances are internally consistent: under the corrected approval accounting (§5), a `submitted` seed request implies a matching `pendingDays` reservation on the balance, and a seed that violated that invariant produced a false `INSUFFICIENT_BALANCE` on approval. The manager-approval E2E therefore seeds its own `submitted` request via the API (reading the live balance version first) rather than relying on a pre-positioned seed — keeping the seed self-consistent and the test self-contained.
