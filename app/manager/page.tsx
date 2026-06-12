@@ -6,7 +6,7 @@ import { useAllRequests } from '@/features/time-off/hooks'
 import { QueryKeys } from '@/lib/query-client'
 import { RefreshCw } from 'lucide-react'
 import { ApprovalPanel } from '@/features/time-off/components/ApprovalPanel'
-import { PendingRequestRow } from '@/features/time-off/components/PendingRequestRow'
+import { RequestTable } from '@/features/time-off/components/RequestTable'
 import { LoadingSkeleton } from '@/features/time-off/components/LoadingSkeleton'
 import { EmptyState } from '@/features/time-off/components/EmptyState'
 import {
@@ -116,7 +116,7 @@ export default function ManagerPage() {
             size="sm"
             onClick={handleRefresh}
             disabled={isFetching}
-            className="shrink-0 text-slate-400 hover:text-slate-200"
+            className="shrink-0 text-slate-400 hover:bg-slate-700/60 hover:text-slate-100"
           >
             <RefreshCw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
             {isFetching ? 'Refreshing...' : 'Refresh'}
@@ -136,32 +136,10 @@ export default function ManagerPage() {
                     {byLocation[locationId].length} pending
                   </span>
                 </h2>
-                <div className="space-y-2">
-                  {byLocation[locationId].map((req) => (
-                    <div
-                      key={req.id}
-                      className="flex items-center gap-3"
-                    >
-                      <div className="flex-1">
-                        <PendingRequestRow
-                          request={{
-                            ...req,
-                            // Show employee name in the row by embedding it in notes display
-                            notes: req.notes,
-                          }}
-                          showEmployeeName
-                        />
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => setSelectedRequest(req)}
-                        className="shrink-0 bg-amber-500 text-slate-900 hover:bg-amber-400 font-medium"
-                      >
-                        Review
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                <RequestTable
+                  requests={byLocation[locationId]}
+                  onReview={setSelectedRequest}
+                />
               </section>
             ))}
           </div>
@@ -175,15 +153,7 @@ export default function ManagerPage() {
               <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Recent History
               </h2>
-              <div className="space-y-2">
-                {allHistory.slice(0, 20).map((req) => (
-                  <PendingRequestRow
-                    key={req.id}
-                    request={req}
-                    showEmployeeName
-                  />
-                ))}
-              </div>
+              <RequestTable requests={allHistory.slice(0, 20)} />
             </section>
           </>
         )}

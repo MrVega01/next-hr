@@ -80,7 +80,7 @@ export function BalanceList({ employeeId }: BalanceListProps) {
           size="sm"
           onClick={handleRefresh}
           disabled={isFetching}
-          className="ml-auto text-slate-400 hover:text-slate-200"
+          className="ml-auto text-slate-400 hover:bg-slate-700/60 hover:text-slate-100"
         >
           <RefreshCw
             className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`}

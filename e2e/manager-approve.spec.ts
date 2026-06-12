@@ -45,10 +45,12 @@ test.describe('Manager: Approve/Deny Requests', () => {
     // with "N pending". At least one request must be present after seeding.
     await expect(page.getByText(/\d+ pending/i).first()).toBeVisible()
 
-    // Each PendingRequestRow shows the balance type ("Vacation") and a day count.
-    // We verify both are rendered so the manager has enough context to act.
+    // The RequestTable renders column headers and a row per request. We verify
+    // the table is present (Employee/Type/Dates headers) and the seeded request's
+    // type + day count render so the manager has enough context to act.
+    await expect(page.getByText('Employee').first()).toBeVisible()
     await expect(page.getByText('Vacation').first()).toBeVisible()
-    await expect(page.getByText(/3 day/i).first()).toBeVisible()
+    await expect(page.getByText('3', { exact: true }).first()).toBeVisible()
   })
 
   test('manager can approve a request', async ({ page }) => {

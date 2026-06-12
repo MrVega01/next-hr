@@ -145,7 +145,7 @@ export function RequestForm({
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="border-slate-600 bg-slate-900 text-slate-100 focus-visible:ring-amber-500/50"
+            className="border-slate-600 bg-slate-900 text-slate-100 focus-visible:ring-amber-500/50 [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
           />
         </div>
         <div className="space-y-1.5">
@@ -161,7 +161,7 @@ export function RequestForm({
             value={endDate}
             min={startDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="border-slate-600 bg-slate-900 text-slate-100 focus-visible:ring-amber-500/50"
+            className="border-slate-600 bg-slate-900 text-slate-100 focus-visible:ring-amber-500/50 [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
           />
         </div>
       </div>
