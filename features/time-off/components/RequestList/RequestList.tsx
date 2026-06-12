@@ -53,7 +53,7 @@ export function RequestList({ employeeId }: RequestListProps) {
     <div className="space-y-6">
       {pending.length > 0 && (
         <section className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
             Pending
           </h3>
           <div className="space-y-2">
@@ -66,7 +66,7 @@ export function RequestList({ employeeId }: RequestListProps) {
 
       {history.length > 0 && (
         <section className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
             History
           </h3>
           <div className="space-y-2">

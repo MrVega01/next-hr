@@ -40,7 +40,7 @@ export function RequestTable({ requests, onReview }: RequestTableProps) {
   // Shared cell padding + a right border to make each field separator obvious.
   const cell = 'px-4 py-3 border-r border-slate-700/40 last:border-r-0'
   const headCell =
-    'px-4 py-2.5 text-left text-[0.7rem] font-semibold uppercase tracking-widest text-slate-500 border-r border-slate-700/40 last:border-r-0'
+    'px-4 py-2.5 text-left text-[0.7rem] font-semibold uppercase tracking-widest text-slate-400 border-r border-slate-700/40 last:border-r-0'
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-700/70 bg-slate-800/30 shadow-sm">
@@ -91,7 +91,7 @@ export function RequestTable({ requests, onReview }: RequestTableProps) {
                 <td className={cell}>
                   <span className="font-mono text-xs text-slate-300 whitespace-nowrap">
                     {formatDate(req.startDate)}
-                    <span className="mx-1 text-slate-600">→</span>
+                    <span className="mx-1 text-slate-600" aria-hidden="true">→</span>
                     {formatDate(req.endDate)}
                   </span>
                 </td>
@@ -101,7 +101,7 @@ export function RequestTable({ requests, onReview }: RequestTableProps) {
                   <span className="font-mono font-semibold text-slate-100">
                     {req.days}
                   </span>
-                  <span className="ml-1 text-xs text-slate-500">
+                  <span className="ml-1 text-xs text-slate-400">
                     day{req.days !== 1 ? 's' : ''}
                   </span>
                 </td>
@@ -116,7 +116,7 @@ export function RequestTable({ requests, onReview }: RequestTableProps) {
                       {req.notes}
                     </span>
                   ) : (
-                    <span className="text-slate-600">—</span>
+                    <span className="text-slate-600" aria-hidden="true">—</span>
                   )}
                 </td>
 
@@ -127,7 +127,7 @@ export function RequestTable({ requests, onReview }: RequestTableProps) {
                     {(req.status === 'denied' ||
                       req.status === 'rolled-back') &&
                       req.hcmRejectionReason && (
-                        <span className="text-[0.7rem] text-red-400/80">
+                        <span className="text-[0.7rem] text-red-400">
                           {req.hcmRejectionReason}
                         </span>
                       )}

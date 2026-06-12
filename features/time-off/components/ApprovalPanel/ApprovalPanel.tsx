@@ -124,7 +124,7 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-slate-500">
+          <p className="text-xs uppercase tracking-widest text-slate-400">
             Request
           </p>
           <p className="mt-1 font-mono text-xs text-slate-400">{request.id}</p>
@@ -135,17 +135,17 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
       {/* Employee + request details */}
       <div className="grid grid-cols-2 gap-4 rounded-lg border border-slate-700/50 bg-slate-900/50 p-4 text-sm">
         <div>
-          <p className="text-xs text-slate-500">Employee</p>
+          <p className="text-xs text-slate-400">Employee</p>
           <p className="mt-0.5 font-medium text-slate-200">
             {request.employeeName ?? request.employeeId}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500">Type</p>
+          <p className="text-xs text-slate-400">Type</p>
           <p className="mt-0.5 font-medium text-slate-200">{typeLabel}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-500">Dates</p>
+          <p className="text-xs text-slate-400">Dates</p>
           <p className="mt-0.5 font-mono text-slate-200">
             {formatDate(request.startDate)}
           </p>
@@ -154,7 +154,7 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500">Duration</p>
+          <p className="text-xs text-slate-400">Duration</p>
           <p className="mt-0.5 font-mono text-2xl font-bold text-slate-100">
             {request.days}
             <span className="ml-1 text-sm font-normal text-slate-400">
@@ -164,7 +164,7 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
         </div>
         {request.notes && (
           <div className="col-span-2">
-            <p className="text-xs text-slate-500">Notes</p>
+            <p className="text-xs text-slate-400">Notes</p>
             <p className="mt-0.5 italic text-slate-300">{request.notes}</p>
           </div>
         )}
@@ -172,7 +172,7 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
 
       {/* Balance at decision time */}
       <div className="rounded-lg border border-slate-700/50 bg-slate-900/50 p-4">
-        <p className="mb-2 text-xs uppercase tracking-widest text-slate-500">
+        <p className="mb-2 text-xs uppercase tracking-widest text-slate-400">
           Balance at Decision Time
         </p>
         {balanceQuery.isLoading || approveMutation.isPending ? (
@@ -202,7 +202,7 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
                 {' '}free
               </p>
             ) : (
-              <p className="text-xs text-slate-500">No other pending requests</p>
+              <p className="text-xs text-slate-400">No other pending requests</p>
             )}
             <StaleIndicator
               asOf={balanceQuery.data.asOf}
@@ -210,7 +210,7 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
             />
           </div>
         ) : (
-          <p className="text-sm text-slate-500">Balance unavailable</p>
+          <p className="text-sm text-slate-400">Balance unavailable</p>
         )}
       </div>
 
@@ -219,15 +219,14 @@ export function ApprovalPanel({ request, onDone }: ApprovalPanelProps) {
         <Button
           onClick={handleApprove}
           disabled={isPending}
-          className="flex-1 bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
+          className="flex-1 bg-emerald-700 text-white hover:bg-emerald-600 disabled:opacity-50"
         >
           {approveMutation.isPending ? 'Approving...' : 'Approve'}
         </Button>
         <Button
-          variant="destructive"
           onClick={handleDeny}
           disabled={isPending}
-          className="flex-1"
+          className="flex-1 bg-red-700 text-white hover:bg-red-600 disabled:opacity-50"
         >
           {denyMutation.isPending ? 'Denying...' : 'Deny'}
         </Button>

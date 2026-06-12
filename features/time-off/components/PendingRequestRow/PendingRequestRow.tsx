@@ -40,7 +40,7 @@ export function PendingRequestRow({
             </span>
           )}
           <span className="font-medium text-slate-200">{typeLabel}</span>
-          <span className="text-slate-500">·</span>
+          <span className="text-slate-500" aria-hidden="true">·</span>
           <span className="font-mono text-slate-300">
             {formatDate(request.startDate)} – {formatDate(request.endDate)}
           </span>
@@ -53,7 +53,7 @@ export function PendingRequestRow({
           </span>
           {request.notes && (
             <>
-              <span className="text-slate-600">·</span>
+              <span className="text-slate-600" aria-hidden="true">·</span>
               <span className="italic text-slate-400 truncate max-w-xs">
                 {request.notes}
               </span>
@@ -64,7 +64,7 @@ export function PendingRequestRow({
         {/* Rejection reason */}
         {(request.status === 'denied' || request.status === 'rolled-back') &&
           request.hcmRejectionReason && (
-            <p className="text-xs text-red-400/80">{request.hcmRejectionReason}</p>
+            <p className="text-xs text-red-400">{request.hcmRejectionReason}</p>
           )}
       </div>
 

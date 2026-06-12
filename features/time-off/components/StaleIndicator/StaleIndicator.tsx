@@ -21,7 +21,7 @@ export function StaleIndicator({ asOf, isFetching }: StaleIndicatorProps) {
       )}
       <span
         className={`text-xs ${
-          isStale ? 'text-amber-400' : 'text-slate-500'
+          isStale ? 'text-amber-400' : 'text-slate-400'
         }`}
       >
         {minutesAgo === 0
