@@ -118,7 +118,7 @@ pnpm storybook           # Start locally at http://localhost:6006
 pnpm build-storybook     # Build static output to storybook-static/
 ```
 
-**11 story files**, each backed by a `mocks/scenarios` preset:
+**12 story files**, each backed by a `mocks/scenarios` preset:
 
 | Component | States covered |
 |---|---|
@@ -133,6 +133,7 @@ pnpm build-storybook     # Build static output to storybook-static/
 | `RequestForm` | Normal balance, insufficient balance |
 | `ApprovalPanel` | Pending approval, version conflict |
 | `RequestList` | Mixed statuses, empty |
+| `RequestTable` | Pending (with Review action), read-only history, single row |
 
 ### Deploy to Chromatic
 
@@ -162,7 +163,8 @@ example-hr/
 │       ├── BalanceCard/        #   BalanceCard.tsx + .test.tsx + .stories.tsx + index.ts
 │       ├── RequestForm/        #   …same trio + barrel for each component
 │       ├── EmployeeView/       #   Employee page composition (moved from app/_components)
-│       ├── …                   #   (11 components total)
+│       ├── RequestTable/       #   Manager review table (pending + history)
+│       ├── …                   #   (13 components total)
 │       └── _stories-helpers.ts # Shared story fixtures (makeBalance, makeRequest)
 │
 ├── mocks/                      # Mock HCM

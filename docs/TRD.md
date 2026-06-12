@@ -459,9 +459,12 @@ Manager View (/manager)
   └── (client page)
       ├── useAllRequests            — all pending requests across all employees
       ├── Refresh button            — invalidates allRequests (pending + history)
-      └── PendingRequestRow[]       — shows request.employeeName (resolved by the engine)
-          └── ApprovalPanel (Dialog)— title + body show employeeName, not employeeId
-              └── useApproveRequest — pessimistic: re-reads balance, version-gates write
+      ├── RequestTable (pending)    — semantic <table>, grouped by location; shows
+      │   │                           request.employeeName (resolved by the engine);
+      │   │                           a Review action column opens the dialog
+      │   └── ApprovalPanel (Dialog)— title + body show employeeName, not employeeId
+      │       └── useApproveRequest — pessimistic: re-reads balance, version-gates write
+      └── RequestTable (history)    — same component without the Action column (onReview omitted)
 ```
 
 ### Why this structure?
