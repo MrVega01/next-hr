@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { within, expect } from '@storybook/test'
+import { within, expect } from 'storybook/test'
 import React from 'react'
 import { StatusBadge } from './StatusBadge'
 import type { RequestStatus } from '@/features/time-off/types'

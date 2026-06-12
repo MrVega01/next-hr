@@ -1,5 +1,5 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/nextjs'
-import { within, userEvent, expect } from '@storybook/test'
+import { within, userEvent, expect } from 'storybook/test'
 import React from 'react'
 import { ReconciliationBanner } from './ReconciliationBanner'
 import { useUiStore } from '@/features/time-off/store/uiStore'

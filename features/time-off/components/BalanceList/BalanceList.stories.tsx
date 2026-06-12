@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { within, expect } from '@storybook/test'
+import { within, expect } from 'storybook/test'
 import { BalanceList } from './BalanceList'
 import { makeBalance } from '../_stories-helpers'
 import type { HcmBatchBalancesResponse } from '@/features/time-off/types'

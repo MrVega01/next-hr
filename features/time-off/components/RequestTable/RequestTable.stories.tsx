@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { within, expect, userEvent, fn } from '@storybook/test'
+import { within, expect, userEvent, fn } from 'storybook/test'
 import { RequestTable } from './RequestTable'
 import { makeRequest } from '../_stories-helpers'
 
