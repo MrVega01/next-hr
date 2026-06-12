@@ -39,6 +39,11 @@ export function RequestForm({
   const [endDate, setEndDate] = useState('')
   const [notes, setNotes] = useState('')
 
+  function handleStartDateChange(value: string) {
+    setStartDate(value)
+    if (endDate && value > endDate) setEndDate('')
+  }
+
   const days = useMemo(
     () => computeDays(startDate, endDate),
     [startDate, endDate],
@@ -144,7 +149,7 @@ export function RequestForm({
             id="start-date"
             type="date"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(e) => handleStartDateChange(e.target.value)}
             className="border-slate-600 bg-slate-900 text-slate-100 focus-visible:ring-amber-500/50 [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
           />
         </div>
